@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase'
 import Nav from '@/components/Nav'
 
-export default function VoteRedirect() {
+export default function VoteIndex() {
   const router = useRouter()
   const [profile, setProfile] = useState(null)
   const [events, setEvents] = useState([])
@@ -18,7 +18,10 @@ export default function VoteRedirect() {
       if (!user) { router.push('/login'); return }
 
       const { data: prof } = await supabase
-        .from('profiles').select('*').eq('id', user.id).single()
+        .from('profiles')
+        .select('*')
+        .eq('id', user.id)
+        .single()
       setProfile(prof)
 
       const { data: evs } = await supabase
@@ -27,13 +30,15 @@ export default function VoteRedirect() {
         .eq('status', 'voting')
         .order('created_at', { ascending: false })
 
-      if (evs && evs.length === 1) {
-        // Only one active vote — go straight there
-        router.push(`/vote/${evs[0].id}`)
+      const active = evs || []
+
+      // If exactly one event, go straight to it
+      if (active.length === 1) {
+        router.push(`/vote/${active[0].id}`)
         return
       }
 
-      setEvents(evs || [])
+      setEvents(active)
       setLoading(false)
     }
     load()
@@ -55,28 +60,28 @@ export default function VoteRedirect() {
         </div>
 
         {events.length === 0 && (
-          <div className="card text-center py-10 fade-in">
-            <p className="text-3xl mb-3">🗳️</p>
-            <p className="text-sm font-medium text-gray-700">No active votes</p>
-            <p className="text-xs text-gray-400 mt-1">The manager hasn't opened voting yet</p>
+          <div className="card text-center py-12 fade-in">
+            <p className="text-4xl mb-3">🗳️</p>
+            <p className="text-sm font-semibold text-gray-700">No active votes right now</p>
+            <p className="text-xs text-gray-400 mt-1">The manager hasn't opened voting yet — check back soon</p>
           </div>
         )}
 
         <div className="space-y-3">
           {events.map(ev => (
             <div key={ev.id} className="card fade-in border-l-4" style={{borderLeftColor:'var(--gold)'}}>
-              <div className="flex items-start justify-between">
+              <div className="flex items-start justify-between mb-3">
                 <div>
                   <p className="font-semibold text-sm text-gray-900">{ev.title}</p>
                   <p className="text-xs text-gray-500 mt-0.5">
-                    {ev.date_options?.length} date options · voting open
+                    {ev.date_options?.length || 0} date option{ev.date_options?.length !== 1 ? 's' : ''} · voting open
                   </p>
                 </div>
                 <span className="badge-gold">Open</span>
               </div>
               <button
                 onClick={() => router.push(`/vote/${ev.id}`)}
-                className="btn-primary mt-3 text-sm"
+                className="btn-primary text-sm"
               >
                 Vote now →
               </button>
